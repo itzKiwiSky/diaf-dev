@@ -1,7 +1,7 @@
 PlayState = {}
 
 function PlayState:init()
-    factorymap = require ''
+
 end
 
 function PlayState:enter()

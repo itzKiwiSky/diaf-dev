@@ -37,21 +37,11 @@ function love.initialize(args)
                 },
                 misc = {
                     language = "English",
-                    discordrpc = true,
+                    discordrpc = false,
                     gamejolt = {
                         username = "",
                         usertoken = ""
                     },
-                    checkForUpdates = true,
-                }
-            },
-            customization = {
-                player = {
-                    type = "vertical",
-                    colors = {
-                        GameColors[1],
-                        GameColors[1]
-                    }
                 }
             }
         }
@@ -59,41 +49,13 @@ function love.initialize(args)
 
     lollipop.initializeSlot("game")
 
-    if not lollipop.currentSave.game.user.gameid then
-        lollipop.currentSave.game.user.gameid = love.data.encode("string", "hex", love.data.hash("md5", love.system.getOS() .. os.time()))
-    end
-
     love.audio.setVolume(0.01 * lollipop.currentSave.game.user.settings.audio.master)
     languageService = LanguageController(lollipop.currentSave.game.user.settings.misc.language)
 
     registers = {
         user = {
-            player = {
-                assets = {
-                    gradient = nil
-                },
-                gamejoltConnected = false,
-            }
         },
         system = {
-            settings = {
-                audio = {
-                    master = lollipop.currentSave.game.user.settings.audio.master,
-                    music = lollipop.currentSave.game.user.settings.audio.music,
-                    sfx = lollipop.currentSave.game.user.settings.audio.sfx,
-                }
-            },
-            editor = {
-                currentLevelFile = "",
-                currentLevelName = "",
-                levelList = {},
-                interface = {
-                    createForm = {
-                        
-                    }
-                }
-            },
-            gameTime = 0
         }
     }
 
@@ -102,13 +64,13 @@ function love.initialize(args)
     --connectGJ()
     
     if lollipop.currentSave.game.user.settings.misc.discordrpc then
-        --connectDiscordRPC()
+        connectDiscordRPC()
     end
 
     if not love.filesystem.isFused() then
         gitStuff.getAll()
 
-        if love.filesystem.getInfo(".nxid") then
+        if love.filesystem.getInfo(".commitid") then
             local title = love.window.getTitle()
             love.window.setTitle(title .. " | " .. love.filesystem.read(".nxid"))
         end
@@ -133,20 +95,13 @@ function love.initialize(args)
     love.filesystem.createDirectory("editor/edited")
 
     gamestate.registerEvents()
-    --[[
-    if lollipop.currentSave.game.user.settings.misc.checkForUpdates then
-        if versionChecker.check() then
-            gamestate.switch(OutdatedState)
-        else
-            gamestate.switch(SplashState)
-        end
-    end
-    ]]--
     gamestate.switch(PlayState)
 end
 
 function love.update(elapsed)
-    discordrpc.runCallbacks()
+    if lollipop.currentSave.game.user.settings.misc.discordrpc then
+        discordrpc.runCallbacks()
+    end
     if gamejolt.isLoggedIn then
         registers.system.gameTime = registers.system.gameTime * elapsed
         if math.floor(registers.system.gameTime) >= 20 then
@@ -160,7 +115,9 @@ function love.quit()
     if gamejolt.isLoggedIn then
         gamejolt.closeSession()
     end
-    discordrpc.shutdown()
+    if lollipop.currentSave.game.user.settings.misc.discordrpc then
+        discordrpc.shutdown()
+    end
 end
 
 function discordrpc.ready(userId, username, discriminator, avatar)
